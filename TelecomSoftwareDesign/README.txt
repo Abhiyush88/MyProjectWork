@@ -2,7 +2,7 @@
 Objective
 ==========
 
-Designe a network application over HTTP 2.0 for streaming media from a local File server to a PC, with an Android device acting as a remote.
+Design a network application over HTTP 2.0 for streaming media from a local File server to a PC, with an Android device acting as a remote.
 
 
 Project description:
