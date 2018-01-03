@@ -1,0 +1,276 @@
+diff -r bcf8525ea3fd app/app.iml
+--- a/app/app.iml	Sun Nov 29 18:33:08 2015 -0600
++++ b/app/app.iml	Mon Nov 30 19:45:30 2015 -0600
+@@ -1,5 +1,5 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+-<module external.linked.project.id=":app" external.linked.project.path="$MODULE_DIR$" external.root.project.path="$MODULE_DIR$/.." external.system.id="GRADLE" external.system.module.group="tsd_media_cast" external.system.module.version="unspecified" type="JAVA_MODULE" version="4">
++<module external.linked.project.id=":app" external.linked.project.path="$MODULE_DIR$" external.root.project.path="$MODULE_DIR$/.." external.system.id="GRADLE" external.system.module.group="android-vlc-remote" external.system.module.version="unspecified" type="JAVA_MODULE" version="4">
+   <component name="FacetManager">
+     <facet type="android-gradle" name="Android-Gradle">
+       <configuration>
+diff -r bcf8525ea3fd app/src/main/java/org/peterbaldwin/vlcremote/app/PickServerActivity.java
+--- a/app/src/main/java/org/peterbaldwin/vlcremote/app/PickServerActivity.java	Sun Nov 29 18:33:08 2015 -0600
++++ b/app/src/main/java/org/peterbaldwin/vlcremote/app/PickServerActivity.java	Mon Nov 30 19:45:30 2015 -0600
+@@ -348,8 +348,10 @@
+     }
+ 
+     private void pick(String server) {
++        /* NAVEEN: This function gets called when a server is picked */
+         Intent data = new Intent();
+         Uri uri = Uri.parse("http://" + server);
++        System.out.println("NAVEEN: uri = " + uri);
+         data.setData(uri);
+         if (!mRemembered.contains(server)) {
+             mRemembered.add(server);
+@@ -393,6 +395,7 @@
+             return super.onPreferenceTreeClick(preferenceScreen, preference);
+         } else {
+             String server = preference.getKey();
++            System.out.println("NAVEEN: Server selected = " + server);
+             pick(server);
+             return true;
+         }
+diff -r bcf8525ea3fd app/src/main/java/org/peterbaldwin/vlcremote/app/PlaybackActivity.java
+--- a/app/src/main/java/org/peterbaldwin/vlcremote/app/PlaybackActivity.java	Sun Nov 29 18:33:08 2015 -0600
++++ b/app/src/main/java/org/peterbaldwin/vlcremote/app/PlaybackActivity.java	Mon Nov 30 19:45:30 2015 -0600
+@@ -100,6 +100,8 @@
+ 
+     private MediaServer mMediaServer;
+ 
++    private MediaServer mFileServer;
++
+     private TabHost mTabHost;
+ 
+     private PlaybackFragment mPlayback;
+@@ -384,8 +386,10 @@
+ 
+                 if (resultCode == RESULT_OK) {
+                     String authority = data.getData().getAuthority();
++                    System.out.println("NAVEEN: authority = " + authority);
+                     changeServer(authority);
+                     preferences.setAuthority(authority);
++/* TODO NAVEEN : comment this */
+                     mBrowse.openDirectory("~");
+                 }
+ 
+@@ -412,6 +416,7 @@
+     private void changeServer(String authority) {
+         Context context = this;
+         mMediaServer = new MediaServer(context, authority);
++        /* mFileServer = new MediaServer(context, "brainiac:8080"); */
+         mPlayback.setMediaServer(mMediaServer);
+         mButtons.setMediaServer(mMediaServer);
+         mVolume.setMediaServer(mMediaServer);
+@@ -420,6 +425,7 @@
+         }
+         mPlaylist.setMediaServer(mMediaServer);
+         mBrowse.setMediaServer(mMediaServer);
++        /* mBrowse.setFileServer(mFileServer); */
+         mStatus.setMediaServer(mMediaServer);
+         if (mServicesDiscovery != null) {
+             mServicesDiscovery.setMediaServer(mMediaServer);
+diff -r bcf8525ea3fd app/src/main/java/org/peterbaldwin/vlcremote/fragment/BrowseFragment.java
+--- a/app/src/main/java/org/peterbaldwin/vlcremote/fragment/BrowseFragment.java	Sun Nov 29 18:33:08 2015 -0600
++++ b/app/src/main/java/org/peterbaldwin/vlcremote/fragment/BrowseFragment.java	Mon Nov 30 19:45:30 2015 -0600
+@@ -17,6 +17,7 @@
+ 
+ package org.peterbaldwin.vlcremote.fragment;
+ 
++import org.peterbaldwin.client.android.vlcremote.PlaybackActivity;
+ import org.peterbaldwin.client.android.vlcremote.R;
+ import org.peterbaldwin.vlcremote.loader.DirectoryLoader;
+ import org.peterbaldwin.vlcremote.model.Directory;
+@@ -26,12 +27,17 @@
+ import org.peterbaldwin.vlcremote.net.MediaServer;
+ import org.peterbaldwin.vlcremote.widget.DirectoryAdapter;
+ 
++import android.app.AlertDialog;
++import android.app.Dialog;
+ import android.content.Context;
++import android.content.DialogInterface;
+ import android.content.Intent;
+ import android.os.Bundle;
+ import android.support.v4.app.ListFragment;
+ import android.support.v4.app.LoaderManager;
+ import android.support.v4.content.Loader;
++import android.text.TextUtils;
++import android.util.Log;
+ import android.view.ContextMenu;
+ import android.view.ContextMenu.ContextMenuInfo;
+ import android.view.Gravity;
+@@ -42,10 +48,12 @@
+ import android.view.View;
+ import android.view.ViewGroup;
+ import android.widget.AdapterView.AdapterContextMenuInfo;
++import android.widget.EditText;
+ import android.widget.ListView;
+ import android.widget.TextView;
+ import android.widget.Toast;
+ 
++@SuppressWarnings("deprecation")
+ public class BrowseFragment extends ListFragment implements
+         LoaderManager.LoaderCallbacks<Remote<Directory>> {
+     private interface Data {
+@@ -56,10 +64,14 @@
+         String DIRECTORY = "vlc:directory";
+     }
+ 
++    private AlertDialog mDialogAddServer;
++
+     private DirectoryAdapter mAdapter;
+ 
+     private MediaServer mMediaServer;
+ 
++    private MediaServer mFileServer;
++
+     private String mDirectory = "~";
+ 
+     private Preferences mPreferences;
+@@ -68,6 +80,12 @@
+ 
+     private TextView mEmpty;
+ 
++    private static final int DIALOG_ADD_SERVER = 1;
++    private EditText mEditHostname;
++    private EditText mEditPort;
++    private int mPort;
++    private static final String TAG = "PickFileServer";
++
+     @Override
+     public void onCreate(Bundle savedInstanceState) {
+         super.onCreate(savedInstanceState);
+@@ -99,6 +117,10 @@
+         mMediaServer = mediaServer;
+     }
+ 
++    public void setFileServer(MediaServer fileServer) {
++        mFileServer = fileServer;
++    }
++
+     @Override
+     public void setEmptyText(CharSequence text) {
+         mEmpty.setText(text);
+@@ -111,9 +133,14 @@
+         mAdapter = new DirectoryAdapter(context);
+         setListAdapter(mAdapter);
+         registerForContextMenu(getListView());
++/*
+         if (mMediaServer != null) {
+             getLoaderManager().initLoader(Data.DIRECTORY, Bundle.EMPTY, this);
+         }
++*/
++        if (mFileServer != null) {
++            getLoaderManager().initLoader(Data.DIRECTORY, Bundle.EMPTY, this);
++        }
+     }
+ 
+     @Override
+@@ -122,7 +149,12 @@
+         if (file.isDirectory()) {
+             openDirectory(file);
+         } else {
+-            mMediaServer.status().command.input.play(file.getMrl(), file.getOptions());
++            System.out.println("NAVEEN: Playing File: " + file.getMrl() + " " + file.getOptions() + "AbsName: " + file.getName()); 
++            String mrl = "rtsp://192.168.43.79:8554/" + file.getPath();
++            /* mMediaServer.status().command.input.play("rtsp://192.168.1.71:8554/Jellyfish-3-Mbps.mkv", file.getOptions()); */
++            /* mMediaServer.status().command.input.play(file.getMrl(), file.getOptions()); */
++            System.out.println("Playing MRL: " + mrl);
++            mMediaServer.status().command.input.play(mrl, file.getOptions());
+         }
+     }
+ 
+@@ -131,6 +163,7 @@
+     }
+ 
+     public void openDirectory(String path) {
++        System.out.println("NAVEEN: Opening directory = " + path); 
+         mDirectory = path;
+         mAdapter.clear();
+         getLoaderManager().restartLoader(Data.DIRECTORY, null, this);
+@@ -160,7 +193,34 @@
+                 getLoaderManager().restartLoader(Data.DIRECTORY, Bundle.EMPTY, this);
+                 return true;
+             case R.id.menu_parent:
+-                openParentDirectory();
++                // NAVEEN
++                final Context context = getActivity();
++                PlaybackActivity act = (PlaybackActivity) context;
++                AlertDialog.Builder builder = new AlertDialog.Builder(context);
++                builder.setTitle(R.string.add_server);
++                LayoutInflater inflater = act.getLayoutInflater();
++                View view = inflater.inflate(R.layout.add_server, null);
++                mEditHostname = (EditText) view.findViewById(R.id.edit_hostname);
++                mEditPort = (EditText) view.findViewById(R.id.edit_port);
++                builder.setTitle("Add File Server");
++                builder.setView(view);
++                builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
++                    public void onClick(DialogInterface dialog, int which) {
++                        String hostname = getHostname();
++                        int port = getPort();
++                        String FileServer = hostname + ":" + port;
++                        System.out.println("File server : " + FileServer);
++                        mFileServer = new MediaServer(context, FileServer);
++                        reload();
++                    }
++                });
++                builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
++                    public void onClick(DialogInterface dialog, int which) {
++                        dialog.cancel();
++                    }
++                } );
++                builder.show();
++                /* openParentDirectory(); */
+                 return true;
+             case R.id.menu_home:
+                 mDirectory = mPreferences.getHomeDirectory();
+@@ -247,7 +307,8 @@
+         Context context = getActivity();
+         mPreferences.setBrowseDirectory(mDirectory);
+         setEmptyText(getText(R.string.loading));
+-        return new DirectoryLoader(context, mMediaServer, mDirectory);
++        /* return new DirectoryLoader(context, mMediaServer, mDirectory); */
++        return new DirectoryLoader(context, mFileServer, mDirectory);
+     }
+ 
+     /** {@inheritDoc} */
+@@ -294,10 +355,28 @@
+     }
+ 
+     public void reload() {
+-        if (mMediaServer != null) {
++        /* if (mMediaServer != null) { */
++        if (mFileServer != null) {
+             getLoaderManager().restartLoader(Data.DIRECTORY, Bundle.EMPTY, this);
+         }
+     }
+ 
+     // TODO: Automatically reload directory when connection is restored
++
++    private String getHostname() {
++        return mEditHostname.getText().toString();
++    }
++
++    private int getPort() {
++        String value = String.valueOf(mEditPort.getText());
++        if (!TextUtils.isEmpty(value)) {
++            try {
++                return Integer.parseInt(value);
++            } catch (NumberFormatException e) {
++                Log.w(TAG, "Invalid port number: " + value);
++            }
++        }
++        return mPort;
++    }
++
+ }
+diff -r bcf8525ea3fd app/src/main/java/org/peterbaldwin/vlcremote/net/MediaServer.java
+--- a/app/src/main/java/org/peterbaldwin/vlcremote/net/MediaServer.java	Sun Nov 29 18:33:08 2015 -0600
++++ b/app/src/main/java/org/peterbaldwin/vlcremote/net/MediaServer.java	Mon Nov 30 19:45:30 2015 -0600
+@@ -148,6 +148,7 @@
+         }
+ 
+         protected final void execute(String encodedQuery) {
++            /* System.out.println("NAVEEN: encodedQuery = " + encodedQuery); */
+             start(intent(encodedQuery));
+         }
+ 

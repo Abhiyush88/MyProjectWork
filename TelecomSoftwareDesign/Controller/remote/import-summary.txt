@@ -1,0 +1,97 @@
+ECLIPSE ANDROID PROJECT IMPORT SUMMARY
+======================================
+
+Ignored Files:
+--------------
+The following files were *not* copied into the new Gradle project; you
+should evaluate whether these are still needed in your project and if
+so manually move them:
+
+* .gitignore
+* .idea/
+* .idea/.name
+* .idea/android-vlc-remote.iml
+* .idea/compiler.xml
+* .idea/copyright/
+* .idea/copyright/profiles_settings.xml
+* .idea/misc.xml
+* .idea/modules.xml
+* .idea/vcs.xml
+* .idea/workspace.xml
+* LICENSE
+* NOTICE
+* ant.properties
+* build.xml
+* market/
+* market/icon.png
+* market/promo.png
+* proguard.cfg
+* scalable/
+* scalable/ic_directory.svg
+* scalable/ic_file.svg
+* scalable/ic_media_playback_pause.svg
+* scalable/ic_media_playback_start.svg
+* scalable/ic_media_playback_stop.svg
+* scalable/ic_media_seek_backward.svg
+* scalable/ic_media_seek_forward.svg
+* scalable/ic_media_skip_backward.svg
+* scalable/ic_media_skip_forward.svg
+* scalable/ic_media_volume_high.svg
+* scalable/ic_media_volume_low.svg
+* scalable/ic_media_volume_medium.svg
+* scalable/ic_media_volume_muted.svg
+* scalable/ic_mime_audio.svg
+* scalable/ic_mime_image.svg
+* scalable/ic_mime_video.svg
+* scalable/ic_popup_eject.svg
+* scalable/ic_up.svg
+* scalable/icon.svg
+* screenshots/
+* screenshots/playback.png
+* screenshots/settings.png
+* screenshots/tablet.png
+* tests/
+* tests/.classpath
+* tests/.project
+* tests/ant.properties
+* tests/build.xml
+* tests/proguard.cfg
+* tests/project.properties
+
+Replaced Jars with Dependencies:
+--------------------------------
+The importer recognized the following .jar files as third party
+libraries and replaced them with Gradle dependencies instead. This has
+the advantage that more explicit version information is known, and the
+libraries can be updated automatically. However, it is possible that
+the .jar file in your project was of an older version than the
+dependency we picked, which could render the project not compileable.
+You can disable the jar replacement in the import wizard and try again:
+
+android-support-v4.jar => com.android.support:support-v4:18.0.0
+
+Moved Files:
+------------
+Android Gradle projects use a different directory structure than ADT
+Eclipse projects. Here's how the projects were restructured:
+
+* AndroidManifest.xml => app/src/main/AndroidManifest.xml
+* lint.xml => app/lint.xml
+* res/ => app/src/main/res/
+* src/ => app/src/main/java/
+* tests/src/ => app/src/androidTest/java/
+
+Next Steps:
+-----------
+You can now build the project. The Gradle project needs network
+connectivity to download dependencies.
+
+Bugs:
+-----
+If for some reason your project does not build, and you determine that
+it is due to a bug or limitation of the Eclipse to Gradle importer,
+please file a bug at http://b.android.com with category
+Component-Tools.
+
+(This import summary is for your information only, and can be deleted
+after import once you are satisfied with the results.)
